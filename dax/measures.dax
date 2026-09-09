@@ -1,0 +1,139 @@
+// =====================================================================
+//  Meridian Financial Services – AI Customer Intelligence dashboard
+//  DAX measures used across the four report pages.
+//
+//  Tables:
+//    meridian_ml_output   – one row per customer (500) with model risk score,
+//                           risk band, actual outcome, churn and NPS
+//    meridian_nlp_output  – one row per support ticket (919) with VADER
+//                           sentiment label and compound score
+//  Relationship: meridian_nlp_output[customer_id]  (many)
+//                  -> meridian_ml_output[customer_id] (one), single direction
+// =====================================================================
+
+
+// ---------------------------------------------------------------------
+//  ML risk measures  (table: meridian_ml_output)
+// ---------------------------------------------------------------------
+
+Total Customers =
+    COUNTROWS ( meridian_ml_output )
+
+High Risk Count =
+    CALCULATE (
+        COUNTROWS ( meridian_ml_output ),
+        meridian_ml_output[risk_band] = "High Risk"
+    )
+
+Medium Risk Count =
+    CALCULATE (
+        COUNTROWS ( meridian_ml_output ),
+        meridian_ml_output[risk_band] = "Medium Risk"
+    )
+
+Low Risk Count =
+    CALCULATE (
+        COUNTROWS ( meridian_ml_output ),
+        meridian_ml_output[risk_band] = "Low Risk"
+    )
+
+avg Risk Score =
+    AVERAGE ( meridian_ml_output[risk_score_pct] )
+
+// Actual FOS escalation rate (ground truth), not the model's prediction
+Escalation Rate =
+    DIVIDE (
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[escalated] = TRUE ()
+        ),
+        COUNTROWS ( meridian_ml_output )
+    )
+
+Avg NPS =
+    AVERAGE ( meridian_ml_output[nps_score] )
+
+
+// ---------------------------------------------------------------------
+//  NLP sentiment measures  (table: meridian_nlp_output)
+// ---------------------------------------------------------------------
+
+Total Tickets =
+    COUNTROWS ( meridian_nlp_output )
+
+// VADER compound score, -1 (most negative) to +1 (most positive)
+Avg Sentiment =
+    AVERAGE ( meridian_nlp_output[compound_score] )
+
+Negative Ticket % =
+    DIVIDE (
+        CALCULATE (
+            COUNTROWS ( meridian_nlp_output ),
+            meridian_nlp_output[sentiment] = "negative"
+        ),
+        COUNTROWS ( meridian_nlp_output )
+    )
+
+
+// ---------------------------------------------------------------------
+//  Suggested additions for a Responsible-AI monitoring page
+//  (not yet in the pbix – included as a starting point)
+// ---------------------------------------------------------------------
+
+// Share of customers the model flagged (y_pred = 1)
+Flagged % =
+    DIVIDE (
+        CALCULATE ( COUNTROWS ( meridian_ml_output ), meridian_ml_output[y_pred] = 1 ),
+        COUNTROWS ( meridian_ml_output )
+    )
+
+// Recall = TP / (TP + FN) within the current filter context (e.g. by age band)
+Model Recall =
+    VAR TP =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 1,
+            meridian_ml_output[y_pred] = 1
+        )
+    VAR FN =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 1,
+            meridian_ml_output[y_pred] = 0
+        )
+    RETURN
+        DIVIDE ( TP, TP + FN )
+
+// False Positive Rate = FP / (FP + TN) – the fairness metric from Section E
+False Positive Rate =
+    VAR FP =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 0,
+            meridian_ml_output[y_pred] = 1
+        )
+    VAR TN =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 0,
+            meridian_ml_output[y_pred] = 0
+        )
+    RETURN
+        DIVIDE ( FP, FP + TN )
+
+// Estimated cost of errors using the Section A figures (£800 FN, £25 FP)
+Estimated Error Cost GBP =
+    VAR FP =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 0,
+            meridian_ml_output[y_pred] = 1
+        )
+    VAR FN =
+        CALCULATE (
+            COUNTROWS ( meridian_ml_output ),
+            meridian_ml_output[y_true] = 1,
+            meridian_ml_output[y_pred] = 0
+        )
+    RETURN
+        FN * 800 + FP * 25

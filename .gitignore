@@ -1,0 +1,9 @@
+# secrets and local files
+.env
+*.key
+azure_keys.txt
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+Thumbs.db
+.DS_Store
