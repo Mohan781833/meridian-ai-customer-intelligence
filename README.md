@@ -1,4 +1,4 @@
-# Meridian Financial Services — AI Customer Intelligence
+﻿# Meridian Financial Services — AI Customer Intelligence
 
 An end-to-end **AI / ML / NLP** project for a simulated UK fintech: a complaint-escalation classifier with a **SHAP explainability layer**, a **fairness audit** across protected-characteristic proxies, sentiment and key-phrase analysis of support tickets and reviews using **Azure AI Language** and **VADER**, and a four-page **Power BI** dashboard that brings the ML and NLP outputs together for the Head of Customer Experience.
 
@@ -61,7 +61,7 @@ Plain-English version of the true positive, as written for the FCA examiner: *sh
 
 ![Escalation Risk page](screenshots/02_escalation_risk_ml.png)
 
-The Power BI file scores **all 500 customers** (the 400 training rows plus the 100 hold-out rows) so that every customer has a risk band for the drill-through table — 105 High Risk, 42 Medium, 352 Low. Those bands reflect in-sample fit and are for navigation, not a performance claim; the hold-out metrics above are the honest numbers.
+The Power BI file is loaded with the **100-customer hold-out set** — the same customers the model never saw during training — split 23 High Risk, 65 Medium and 12 Low. Every figure on the dashboard is therefore an honest out-of-sample number rather than in-sample fit. The trade-off is small group sizes: per-product and per-region bars rest on a handful of customers each, so read them as direction rather than precise rates.
 
 ## Data model
 
@@ -69,7 +69,7 @@ Two tables from the notebook exports, related many-to-one on `customer_id` (sing
 
 | Table | Grain | Rows | Key fields |
 |---|---|---|---|
-| `meridian_ml_output` | one row per customer | 500 | age_band, product_type, region, primary_channel, tenure_months, account_value_gbp, previous_complaints, risk_score_pct, risk_band, y_true, y_pred, escalated, churned, nps_score |
+| `meridian_ml_output` | one row per customer | 100 (hold-out set) | age_band, product_type, region, primary_channel, tenure_months, account_value_gbp, previous_complaints, risk_score_pct, risk_band, y_true, y_pred, escalated, churned, nps_score |
 | `meridian_nlp_output` | one row per support ticket | 919 | ticket_date, category, resolution_time_hrs, resolved, ticket_text, sentiment, compound_score |
 
 ## DAX measures
